@@ -16,7 +16,7 @@ Tested on the following platforms:
 Required to run this program are basic linux tools:
 
 * lscpi and lshw
-* is missing can install using your local package manager, below are examples for yum and apt.
+* if missing can install using your local package manager, below are examples for yum and apt.
 
 ```bash
 yum install pciutils; yum install lshw;
@@ -29,7 +29,8 @@ apt-get install pciutils; apt-get install lshw;
 ./getinfo.sh -s  # shows output on screen as well directories
 ```
 
-The code then generates files with the hostname & run date to cpu, nic, and drives directory
+The code then generates files named with the hostname & run date "<hostname>-<date>.out" to cpu, nic, and drives directory.
+These directories are created in the script's root directory, and not your current working directory.
 
 ```
 root@starlord2:~/lbl-kk# tree cpu nic drives
