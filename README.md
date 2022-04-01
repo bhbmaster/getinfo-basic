@@ -6,6 +6,12 @@ getinfo.sh is a bash script providing basic info on hw:
 * nics (model numbers, and link state)
 * drives (logical and model name)
 
+Note, if lspci doesn't have output, NIC models will be listed as not available "N/A" as that info is in lspci. For example if run from WSL2, it cannot get the NIC models as they are virtual.
+
+Tested on the following platforms:
+* Ubuntu 20.04 running on WSL2 - kernel: 5.10.102.1-microsoft-standard-WSL2 
+* Debian 8 running on ReadyNAS 6.10 code - kernel: 4.4.218.x86_64.1
+
 ## Pre requirements
 
 Required to run this program are basic linux tools:

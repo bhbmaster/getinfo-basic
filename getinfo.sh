@@ -6,6 +6,8 @@
 # pre-reqs: lshw & pciutils
 
 # set -x # uncomment for debug
+exec 2>/dev/null # send all stderr to garbarge, so comment this line for debug
+
 # sidenote will pipe most vars to xargs to maintain consistency as it removes whitespace when served without args)
 
 # get script dir
@@ -62,17 +64,34 @@ echo "* cpu core count: $CPU_CORES"; } | writer "$CPU_FN"
 
 # gather nic stats
 HWOUT=$(lshw -class network 2> /dev/null) # stderr to /dev/null to supress progress of its info gathering
-PCIOUT=$(lspci | grep -Ei "ethernet|wireless|wi-fi|wireless")
-{ screen_arg_present && echo "NETWORK:";
-echo "$PCIOUT" | while read i; do
-   ID=$(echo "$i" | awk '{print $1}' | xargs)
-   MODEL=$(echo "$i" | awk -F':' '{print $NF}' | xargs)
-   # LOGICALNAME=$(echo "$HWOUT" | grep -A1000 "$ID" | grep -B1000 -- "\*-network" | grep "logical name" | awk '{print $NF}')
-   LOGICAL_NAME=$(echo "$HWOUT" | grep -A4 "$ID" | grep "logical name" | awk '{print $NF}' | xargs)
-   LINK_STATE=$(ethtool $LOGICAL_NAME | grep -i "Link detected" | awk '{print $NF}' | xargs)
-   [[ "$LINK_STATE" == "yes" ]] && LINK_UD="up" || LINK_UD="down"
-   echo "* $LOGICAL_NAME - link state: $LINK_UD - model name: $MODEL"
-done; } | writer "$NIC_FN"
+PCIOUT=$(lspci | grep -Ei "ethernet|wireless|wi-fi|wireless" | grep .)
+# echo "HWOUT: $HWOUT"
+# echo "PCIOUT: $PCIOUT"
+
+# if ls pci missing model numbers of eth ports, lets just get logical name and link state, otherwise get full config
+{
+  screen_arg_present && echo "NETWORK:";
+  if [[ -z "$PCIOUT" ]]; then
+    # no PCIOUT so just logical name like eth0 and link state
+    echo "$HWOUT" | grep "logical name" | awk '{print $NF}' | while read i; do
+      LOGICAL_NAME="$i"
+      LINK_STATE=$(ethtool $LOGICAL_NAME | grep -i "Link detected" | awk '{print $NF}' | xargs)
+      [[ "$LINK_STATE" == "yes" ]] && LINK_UD="up" || LINK_UD="down"
+      echo "* $LOGICAL_NAME - link state: $LINK_UD - model name: N/A"
+    done
+  else
+    # we have some possibly useful PCIOUT info so lets try to extract hw info from it
+    echo "$PCIOUT" | while read i; do
+      ID=$(echo "$i" | awk '{print $1}' | xargs)
+      MODEL=$(echo "$i" | awk -F':' '{print $NF}' | xargs)
+      # LOGICALNAME=$(echo "$HWOUT" | grep -A1000 "$ID" | grep -B1000 -- "\*-network" | grep "logical name" | awk '{print $NF}')
+      LOGICAL_NAME=$(echo "$HWOUT" | grep -A4 "$ID" | grep "logical name" | awk '{print $NF}' | xargs)
+      LINK_STATE=$(ethtool $LOGICAL_NAME | grep -i "Link detected" | awk '{print $NF}' | xargs)
+      [[ "$LINK_STATE" == "yes" ]] && LINK_UD="up" || LINK_UD="down"
+      echo "* $LOGICAL_NAME - link state: $LINK_UD - model name: $MODEL"
+    done;
+  fi
+} | writer "$NIC_FN"
 
 # get drive stats
 { screen_arg_present && echo "DRIVES:";
